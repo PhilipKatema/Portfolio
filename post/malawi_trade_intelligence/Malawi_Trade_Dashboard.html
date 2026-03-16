@@ -1,0 +1,701 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Malawi Trade Intelligence Dashboard</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Sora:wght@300;400;600;700;800&display=swap" rel="stylesheet"/>
+<style>
+  :root {
+    --navy:   #0D1F3C;
+    --navy2:  #162A4E;
+    --teal:   #1A7A8A;
+    --teal2:  #22A0B4;
+    --gold:   #E8A020;
+    --gold2:  #F5BE55;
+    --bg:     #0A1628;
+    --card:   #112040;
+    --card2:  #162E50;
+    --border: rgba(26,122,138,0.25);
+    --text:   #E8EFF8;
+    --muted:  #7A90AA;
+    --mono:   'DM Mono', monospace;
+    --sans:   'Sora', sans-serif;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: var(--sans);
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* ── TOP BAR ── */
+  .topbar {
+    background: var(--navy);
+    border-bottom: 2px solid var(--gold);
+    padding: 0 28px;
+    height: 54px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+  }
+  .topbar-left {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+  }
+  .flag {
+    width: 32px;
+    height: 22px;
+    background: linear-gradient(to bottom, #000 33%, #CE1126 33%, #CE1126 66%, #339E35 66%);
+    border-radius: 2px;
+    position: relative;
+    overflow: hidden;
+  }
+  .flag::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(circle at 50% 50%, rgba(255,255,255,0.25) 6px, transparent 6px);
+  }
+  .brand { font-size: 15px; font-weight: 700; letter-spacing: .04em; color: white; }
+  .brand span { color: var(--gold); }
+  .topbar-right {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+  }
+  .badge {
+    background: rgba(26,122,138,0.25);
+    border: 1px solid var(--teal);
+    border-radius: 4px;
+    padding: 3px 10px;
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--teal2);
+    letter-spacing: .06em;
+  }
+  .badge.gold {
+    background: rgba(232,160,32,0.15);
+    border-color: var(--gold);
+    color: var(--gold2);
+  }
+
+  /* ── LAYOUT ── */
+  .shell {
+    max-width: 1400px;
+    margin: 0 auto;
+    padding: 24px 28px 48px;
+  }
+
+  /* ── PAGE TITLE ── */
+  .page-title {
+    margin-bottom: 24px;
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+  }
+  .page-title h1 {
+    font-size: 26px;
+    font-weight: 800;
+    line-height: 1.1;
+    letter-spacing: -.02em;
+  }
+  .page-title h1 em { color: var(--teal2); font-style: normal; }
+  .page-title p { font-size: 12.5px; color: var(--muted); margin-top: 4px; }
+  .source-chip {
+    font-family: var(--mono);
+    font-size: 10.5px;
+    color: var(--muted);
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 5px 12px;
+  }
+  .source-chip span { color: var(--teal2); }
+
+  /* ── KPI ROW ── */
+  .kpi-row {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 12px;
+    margin-bottom: 20px;
+  }
+  .kpi {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 14px 16px;
+    position: relative;
+    overflow: hidden;
+    transition: border-color .2s;
+  }
+  .kpi:hover { border-color: var(--teal); }
+  .kpi::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 2px;
+    background: var(--accent, var(--teal));
+  }
+  .kpi-label {
+    font-size: 10px;
+    font-weight: 600;
+    color: var(--muted);
+    letter-spacing: .08em;
+    text-transform: uppercase;
+    margin-bottom: 6px;
+  }
+  .kpi-value {
+    font-family: var(--mono);
+    font-size: 24px;
+    font-weight: 500;
+    color: var(--text);
+    line-height: 1;
+    margin-bottom: 4px;
+  }
+  .kpi-sub {
+    font-size: 10.5px;
+    color: var(--muted);
+  }
+  .kpi-sub strong { color: var(--teal2); }
+
+  /* ── GRID SECTIONS ── */
+  .grid-2 {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+    margin-bottom: 16px;
+  }
+  .grid-3 {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 16px;
+    margin-bottom: 16px;
+  }
+  .grid-wide {
+    display: grid;
+    grid-template-columns: 2fr 1fr;
+    gap: 16px;
+    margin-bottom: 16px;
+  }
+  .full-width { margin-bottom: 16px; }
+
+  /* ── CARD ── */
+  .card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 18px 20px;
+    position: relative;
+    overflow: hidden;
+  }
+  .card-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    margin-bottom: 14px;
+  }
+  .card-title {
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: .06em;
+    text-transform: uppercase;
+    color: var(--teal2);
+  }
+  .card-sub {
+    font-size: 11px;
+    color: var(--muted);
+    margin-top: 2px;
+  }
+  .card-tag {
+    font-family: var(--mono);
+    font-size: 9.5px;
+    color: var(--muted);
+    background: rgba(255,255,255,0.05);
+    border-radius: 3px;
+    padding: 2px 7px;
+  }
+  canvas { max-width: 100%; }
+
+  /* ── INSIGHT BOX ── */
+  .insight {
+    background: rgba(26,122,138,0.1);
+    border-left: 3px solid var(--teal);
+    border-radius: 0 6px 6px 0;
+    padding: 10px 14px;
+    margin-top: 12px;
+    font-size: 11.5px;
+    color: var(--muted);
+    line-height: 1.5;
+  }
+  .insight strong { color: var(--text); }
+
+  /* ── VOLATILITY TABLE ── */
+  .vol-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 11.5px;
+  }
+  .vol-table th {
+    text-align: left;
+    padding: 6px 10px;
+    color: var(--muted);
+    font-weight: 600;
+    font-size: 10px;
+    letter-spacing: .06em;
+    text-transform: uppercase;
+    border-bottom: 1px solid var(--border);
+  }
+  .vol-table td {
+    padding: 6px 10px;
+    border-bottom: 1px solid rgba(255,255,255,0.04);
+    font-family: var(--mono);
+    font-size: 11px;
+  }
+  .vol-table tr:hover td { background: rgba(26,122,138,0.08); }
+  .vol-bar-wrap { width: 90px; }
+  .vol-bar {
+    height: 5px;
+    background: var(--border);
+    border-radius: 3px;
+    overflow: hidden;
+  }
+  .vol-bar-fill {
+    height: 100%;
+    border-radius: 3px;
+    background: linear-gradient(90deg, var(--teal), var(--teal2));
+    transition: width .4s ease;
+  }
+
+  /* ── CLUSTER DOTS ── */
+  .cluster-legend {
+    display: flex;
+    gap: 14px;
+    margin-bottom: 10px;
+    flex-wrap: wrap;
+  }
+  .cl-item {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 11px;
+    color: var(--muted);
+  }
+  .cl-dot {
+    width: 9px;
+    height: 9px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+
+  /* ── FORECAST BADGE ── */
+  .forecast-meta {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 12px;
+    flex-wrap: wrap;
+  }
+  .fm-chip {
+    font-family: var(--mono);
+    font-size: 10px;
+    padding: 3px 9px;
+    border-radius: 3px;
+    border: 1px solid;
+  }
+  .fm-chip.actual { border-color: var(--teal); color: var(--teal2); background: rgba(26,122,138,0.1); }
+  .fm-chip.pred   { border-color: var(--gold); color: var(--gold2); background: rgba(232,160,32,0.1); }
+
+  /* ── FOOTER ── */
+  .dash-footer {
+    margin-top: 32px;
+    padding-top: 16px;
+    border-top: 1px solid var(--border);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  .dash-footer p { font-size: 11px; color: var(--muted); }
+  .dash-footer span { color: var(--teal2); }
+
+  /* responsive */
+  @media (max-width: 900px) {
+    .grid-2, .grid-3, .grid-wide { grid-template-columns: 1fr; }
+    .kpi-row { grid-template-columns: repeat(2, 1fr); }
+  }
+</style>
+</head>
+<body>
+
+<!-- TOP BAR -->
+<div class="topbar">
+  <div class="topbar-left">
+    <div class="flag"></div>
+    <div class="brand">MALAWI <span>TRADE INTELLIGENCE</span></div>
+  </div>
+  <div class="topbar-right">
+    <span class="badge">FAOSTAT</span>
+    <span class="badge gold">1986 – 2024</span>
+    <span class="badge">KNIME · k-Means · Linear Regression</span>
+  </div>
+</div>
+
+<div class="shell">
+
+  <!-- PAGE TITLE -->
+  <div class="page-title">
+    <div>
+      <h1>Export Trade Analysis<br/><em>Malawi & All Trading Partners</em></h1>
+      <p>38-year longitudinal study · Concentration · Clustering · Growth · Volatility · Forecast</p>
+    </div>
+    <div class="source-chip">Source: <span>fao.org/faostat</span> · Trade Matrix · USD (1000s)</div>
+  </div>
+
+  <!-- KPI ROW -->
+  <div class="kpi-row">
+    <div class="kpi" style="--accent:#E8A020">
+      <div class="kpi-label">Top Commodity</div>
+      <div class="kpi-value">67.4%</div>
+      <div class="kpi-sub">Unmanufactured <strong>Tobacco</strong></div>
+    </div>
+    <div class="kpi" style="--accent:#1A7A8A">
+      <div class="kpi-label">Top Partner</div>
+      <div class="kpi-value">23.7%</div>
+      <div class="kpi-sub"><strong>Belgium</strong> export share</div>
+    </div>
+    <div class="kpi" style="--accent:#27AE60">
+      <div class="kpi-label">Dataset Span</div>
+      <div class="kpi-value">38 yrs</div>
+      <div class="kpi-sub"><strong>1986</strong> – 2024</div>
+    </div>
+    <div class="kpi" style="--accent:#E8A020">
+      <div class="kpi-label">Peak Export Value</div>
+      <div class="kpi-value">$875M</div>
+      <div class="kpi-sub">Tobacco exports, <strong>2010</strong></div>
+    </div>
+    <div class="kpi" style="--accent:#1A7A8A">
+      <div class="kpi-label">2029 Forecast</div>
+      <div class="kpi-value">~$690M</div>
+      <div class="kpi-sub">Linear regression <strong>projection</strong></div>
+    </div>
+  </div>
+
+  <!-- ROW 1: Two pie charts -->
+  <div class="grid-2">
+    <div class="card">
+      <div class="card-header">
+        <div>
+          <div class="card-title">Top 10 Export Commodities</div>
+          <div class="card-sub">Share of total export value · All years</div>
+        </div>
+        <span class="card-tag">Concentration</span>
+      </div>
+      <canvas id="commodityPie" height="240"></canvas>
+      <div class="insight">
+        <strong>Tobacco monoculture:</strong> Unmanufactured tobacco at 67.4% represents extreme commodity concentration — nearly 7× the share of the second product (tea leaves at 9.8%).
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-header">
+        <div>
+          <div class="card-title">Top 10 Trading Partners</div>
+          <div class="card-sub">Share of total export value · All years</div>
+        </div>
+        <span class="card-tag">Concentration</span>
+      </div>
+      <canvas id="partnerPie" height="240"></canvas>
+      <div class="insight">
+        <strong>Belgium dominance:</strong> At 23.7%, Belgium alone accounts for nearly one quarter of all export value — more than the next two partners (South Africa + USA) combined.
+      </div>
+    </div>
+  </div>
+
+  <!-- ROW 2: YoY + Forecast (wide) -->
+  <div class="full-width">
+    <div class="card">
+      <div class="card-header">
+        <div>
+          <div class="card-title">Year-Over-Year Export Growth (%)</div>
+          <div class="card-sub">Total export value growth rate · 1987–2024 · Computed via lag-column method</div>
+        </div>
+        <span class="card-tag">Growth Dynamics</span>
+      </div>
+      <canvas id="yoyChart" height="130"></canvas>
+      <div class="insight">
+        <strong>1997–1998 anomaly (~12,500% spike):</strong> Reflects a data continuity event in FAOSTAT combined with Malawi's post-democratization trade expansion. Post-2000, growth stabilizes in low single digits — consistent with a mature export market.
+      </div>
+    </div>
+  </div>
+
+  <!-- ROW 3: Forecast + Volatility table -->
+  <div class="grid-wide">
+    <div class="card">
+      <div class="card-header">
+        <div>
+          <div class="card-title">Tobacco Export Forecast — Next 5 Years</div>
+          <div class="card-sub">Linear regression model · Historical + projected values through 2029</div>
+        </div>
+        <span class="card-tag">Prediction</span>
+      </div>
+      <div class="forecast-meta">
+        <span class="fm-chip actual">— Historical (1986–2024)</span>
+        <span class="fm-chip pred">-- Forecast (2025–2029)</span>
+      </div>
+      <canvas id="forecastChart" height="200"></canvas>
+      <div class="insight">
+        <strong>Recovery trajectory:</strong> After a sharp post-2010 decline from $875M to ~$400M, export values have recovered to ~$670M by 2024. The model projects continued growth toward ~$690M by 2029.
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-header">
+        <div>
+          <div class="card-title">Rolling Volatility — Belgium</div>
+          <div class="card-sub">3-year rolling std. deviation · Export USD</div>
+        </div>
+        <span class="card-tag">Risk</span>
+      </div>
+      <table class="vol-table">
+        <thead>
+          <tr>
+            <th>Year</th>
+            <th>Export ($M)</th>
+            <th>Std. Dev.</th>
+            <th>Volatility</th>
+          </tr>
+        </thead>
+        <tbody id="volTableBody"></tbody>
+      </table>
+      <div class="insight">
+        <strong>Declining risk:</strong> Volatility fell from a peak of $71.3M (2009) to just $7.7M by 2023 — signaling a maturing, more predictable trade relationship.
+      </div>
+    </div>
+  </div>
+
+  <!-- FOOTER -->
+  <div class="dash-footer">
+    <p>Philip Katema · Data Analytics Portfolio · <span>2025</span></p>
+    <p>Data: <span>FAOSTAT (fao.org/faostat)</span> · Pipeline: <span>KNIME Analytics Platform</span> · Dashboard: <span>HTML/Chart.js</span></p>
+  </div>
+
+</div><!-- /shell -->
+
+<script>
+// ── CHART DEFAULTS ──────────────────────────────────────────────────────────
+Chart.defaults.color = '#7A90AA';
+Chart.defaults.font.family = "'DM Mono', monospace";
+Chart.defaults.font.size = 11;
+
+const NAVY   = '#0D1F3C';
+const TEAL   = '#1A7A8A';
+const TEAL2  = '#22A0B4';
+const GOLD   = '#E8A020';
+const GOLD2  = '#F5BE55';
+const MUTED  = '#7A90AA';
+const GRID   = 'rgba(26,122,138,0.12)';
+
+// ── COMMODITY PIE ────────────────────────────────────────────────────────────
+new Chart(document.getElementById('commodityPie'), {
+  type: 'doughnut',
+  data: {
+    labels: ['Unmanuf. Tobacco', 'Tea Leaves', 'Raw Cane Sugar', 'Groundnuts', 'Other'],
+    datasets: [{
+      data: [67.39, 9.78, 8.70, 3.26, 10.87],
+      backgroundColor: ['#E8A020','#1A7A8A','#22A0B4','#2EC4B6','#7A90AA'],
+      borderColor: '#112040',
+      borderWidth: 2,
+      hoverOffset: 8
+    }]
+  },
+  options: {
+    responsive: true,
+    cutout: '62%',
+    plugins: {
+      legend: {
+        position: 'right',
+        labels: { padding: 12, boxWidth: 10, font: { size: 11 } }
+      },
+      tooltip: {
+        callbacks: {
+          label: ctx => ` ${ctx.label}: ${ctx.parsed}%`
+        }
+      }
+    }
+  }
+});
+
+// ── PARTNER PIE ─────────────────────────────────────────────────────────────
+new Chart(document.getElementById('partnerPie'), {
+  type: 'doughnut',
+  data: {
+    labels: ['Belgium','South Africa','USA','Egypt','Germany','UK','Zimbabwe','China','Netherlands','Kenya'],
+    datasets: [{
+      data: [23.73, 11.86, 10.17, 8.48, 8.47, 7.85, 6.78, 6.78, 6.78, 5.09],
+      backgroundColor: [
+        '#E8A020','#1A7A8A','#22A0B4','#2EC4B6','#27AE60',
+        '#F5BE55','#7A90AA','#3A6B9A','#5B9AC2','#A0B8CC'
+      ],
+      borderColor: '#112040',
+      borderWidth: 2,
+      hoverOffset: 8
+    }]
+  },
+  options: {
+    responsive: true,
+    cutout: '62%',
+    plugins: {
+      legend: {
+        position: 'right',
+        labels: { padding: 10, boxWidth: 10, font: { size: 10 } }
+      },
+      tooltip: {
+        callbacks: {
+          label: ctx => ` ${ctx.label}: ${ctx.parsed}%`
+        }
+      }
+    }
+  }
+});
+
+// ── YOY CHART ────────────────────────────────────────────────────────────────
+const yoyYears = [1987,1988,1989,1990,1991,1992,1993,1994,1995,1996,1997,1998,1999,2000,2001,2002,2003,2004,2005,2006,2007,2008,2009,2010,2011,2012,2013,2014,2015,2016,2017,2018,2019,2020,2021,2022,2023,2024];
+const yoyVals  = [12,8,-4,3,2,-60,280,45,30,50,400,12450,-98,80,120,-30,45,60,25,35,48,52,-10,38,-60,20,15,40,-20,30,42,18,-8,12,-4,8,-6,14];
+new Chart(document.getElementById('yoyChart'), {
+  type: 'line',
+  data: {
+    labels: yoyYears,
+    datasets: [{
+      label: 'YoY Growth %',
+      data: yoyVals,
+      borderColor: TEAL2,
+      backgroundColor: 'rgba(34,160,180,0.08)',
+      pointRadius: ctx => ctx.dataIndex === 11 ? 7 : 2,
+      pointBackgroundColor: ctx => ctx.dataIndex === 11 ? GOLD : TEAL2,
+      borderWidth: 1.5,
+      fill: true,
+      tension: 0.3
+    }]
+  },
+  options: {
+    responsive: true,
+    plugins: {
+      legend: { display: false },
+      tooltip: {
+        callbacks: { label: ctx => ` Growth: ${ctx.parsed.y.toLocaleString()}%` }
+      }
+    },
+    scales: {
+      x: { grid: { color: GRID }, ticks: { maxTicksLimit: 12 } },
+      y: { grid: { color: GRID }, ticks: { callback: v => v.toLocaleString()+'%' } }
+    }
+  }
+});
+
+// ── FORECAST CHART ───────────────────────────────────────────────────────────
+const histYears = [1986,1987,1988,1989,1990,1991,1992,1993,1997,1998,1999,2000,2001,2002,2003,2007,2008,2009,2010,2011,2013,2014,2015,2016,2017,2018,2019,2020,2021,2022,2023,2024];
+const histVals  = [111,130,127,142,170,165,148,135,180,225,260,230,300,340,360,430,595,770,875,930,570,640,550,480,560,620,530,410,440,580,625,670];
+const forecastYears = [2024,2025,2026,2027,2028,2029];
+const forecastVals  = [670,675,680,683,687,692];
+
+const allLabels = [...new Set([...histYears, ...forecastYears])].sort((a,b)=>a-b);
+const histData  = allLabels.map(y => histYears.includes(y) ? histVals[histYears.indexOf(y)] : null);
+const predData  = allLabels.map(y => forecastYears.includes(y) ? forecastVals[forecastYears.indexOf(y)] : null);
+
+new Chart(document.getElementById('forecastChart'), {
+  type: 'line',
+  data: {
+    labels: allLabels,
+    datasets: [
+      {
+        label: 'Historical',
+        data: histData,
+        borderColor: TEAL2,
+        backgroundColor: 'rgba(34,160,180,0.07)',
+        pointRadius: 2,
+        borderWidth: 2,
+        fill: true,
+        tension: 0.3,
+        spanGaps: false
+      },
+      {
+        label: 'Forecast',
+        data: predData,
+        borderColor: GOLD,
+        borderDash: [6,4],
+        backgroundColor: 'rgba(232,160,32,0.08)',
+        pointRadius: 4,
+        pointBackgroundColor: GOLD,
+        borderWidth: 2,
+        fill: true,
+        tension: 0.3,
+        spanGaps: false
+      }
+    ]
+  },
+  options: {
+    responsive: true,
+    plugins: {
+      legend: { display: false },
+      tooltip: {
+        callbacks: { label: ctx => ` ${ctx.dataset.label}: $${ctx.parsed.y}M` }
+      }
+    },
+    scales: {
+      x: { grid: { color: GRID }, ticks: { maxTicksLimit: 10 } },
+      y: {
+        grid: { color: GRID },
+        ticks: { callback: v => '$'+v+'M' },
+        min: 0
+      }
+    }
+  }
+});
+
+// ── VOLATILITY TABLE ─────────────────────────────────────────────────────────
+const volData = [
+  {year:2003, export:17.4, std:6.83},
+  {year:2007, export:68.1, std:32.72},
+  {year:2008, export:114.7, std:48.65},
+  {year:2009, export:208.1, std:71.28},
+  {year:2010, export:198.0, std:51.26},
+  {year:2011, export:93.3, std:63.55},
+  {year:2013, export:97.8, std:59.18},
+  {year:2014, export:171.3, std:43.79},
+  {year:2015, export:114.0, std:38.61},
+  {year:2016, export:168.4, std:32.27},
+  {year:2017, export:193.9, std:40.81},
+  {year:2018, export:133.6, std:30.29},
+  {year:2019, export:150.9, std:31.06},
+  {year:2020, export:162.5, std:14.54},
+  {year:2021, export:138.6, std:11.91},
+  {year:2022, export:143.8, std:12.54},
+  {year:2023, export:153.8, std:7.72},
+  {year:2024, export:178.7, std:17.98},
+];
+const maxStd = Math.max(...volData.map(d=>d.std));
+const tbody = document.getElementById('volTableBody');
+volData.forEach(d => {
+  const pct = (d.std / maxStd * 100).toFixed(0);
+  const color = d.std > 50 ? '#E8A020' : d.std > 25 ? '#22A0B4' : '#27AE60';
+  tbody.innerHTML += `
+    <tr>
+      <td>${d.year}</td>
+      <td>$${d.export}M</td>
+      <td style="color:${color}">$${d.std.toFixed(1)}M</td>
+      <td class="vol-bar-wrap">
+        <div class="vol-bar">
+          <div class="vol-bar-fill" style="width:${pct}%;background:${color}"></div>
+        </div>
+      </td>
+    </tr>`;
+});
+</script>
+</body>
+</html>
